@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muwasaat — Legacy vs New Field View</title>
+<style>
+  :root { --brand:#1a6b4a; --ink:#1a1a1a; --mut:#6b7280; --line:#e2e6ea; --bg:#f6f8f7; --warn:#f5a623; --info:#3b82f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Calibri,system-ui,sans-serif; color:var(--ink); background:var(--bg); font-size:14px; }
+  header { background:var(--brand); color:#fff; padding:22px 24px; }
+  header h1 { margin:0 0 6px; font-size:22px; }
+  header p { margin:0; opacity:.9; font-size:13px; }
+  nav { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:4px; background:#fff; border-bottom:1px solid var(--line); padding:8px 16px; }
+  nav button { border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 14px; border-radius:8px; font:inherit; font-weight:600; cursor:pointer; }
+  nav button.on { background:var(--brand); border-color:var(--brand); color:#fff; }
+  main { padding:18px 16px 60px; max-width:1500px; margin:0 auto; }
+  .view { display:none; } .view.on { display:block; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:0 0 16px; }
+  .card h3 { margin:0 0 4px; font-size:16px; color:var(--brand); display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .card h4 { margin:18px 0 6px; font-size:14px; }
+  .sub { margin:0 0 10px; color:var(--mut); font-size:12.5px; }
+  h2.grp { font-size:15px; margin:26px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--brand); }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--mut); border-bottom:1px solid var(--line); padding:6px 8px; vertical-align:bottom; font-weight:700; }
+  td { border-bottom:1px solid #f0f2f1; padding:6px 8px; vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td.lbl { font-weight:600; }
+  td.val { color:#111; }
+  td.ty, td.pts { color:var(--mut); font-size:12.5px; }
+  code { font-family:Consolas,"Courier New",monospace; font-size:12px; background:#f3f6f4; border:1px solid #e6ebe8; border-radius:4px; padding:1px 5px; color:#14532d; }
+  th code { background:none; border:0; padding:0; color:var(--mut); font-size:11px; }
+  .hint { display:block; font-weight:400; color:var(--mut); font-size:11.5px; margin-top:2px; }
+  .empty { color:var(--mut); font-style:italic; }
+  tr.missing td { background:#fff8ec; }
+  tr.tot td { font-weight:700; background:#f6faf8; }
+  .badge { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:3px 8px; border-radius:20px; background:#eef2f0; color:var(--mut); }
+  .badge.ok { background:#e8f3ee; color:var(--brand); }
+  .badge.warn { background:#fdf3d6; color:#8a6d1a; }
+  .badge.info { background:#e7effd; color:#1d4ed8; }
+  .badge.score { background:#f3e8ff; color:#6b21a8; }
+  .badge.same { background:#e8f3ee; color:#166534; }
+  .badge.conv { background:#e7effd; color:#1d4ed8; }
+  .badge.lonly { background:#fdf3d6; color:#8a6d1a; }
+  .badge.nonly { background:#f3e8ff; color:#6b21a8; }
+  .badge.gap { background:#fde8e8; color:#b91c1c; }
+  .badge.ask { background:#fff1e0; color:#b45309; }
+  table.sbs th.hl { background:#fdf8ee; color:#8a6d1a; border-bottom:2px solid #f0e2c4; }
+  table.sbs th.hn { background:#eef6f2; color:var(--brand); border-bottom:2px solid #cfe5da; }
+  table.sbs td:nth-child(1), table.sbs td:nth-child(2) { background:#fffdf8; }
+  table.sbs td:nth-child(3), table.sbs td:nth-child(4) { background:#fbfefc; }
+  table.sbs tr.st-gap td:nth-child(1), table.sbs tr.st-gap td:nth-child(2) { background:#fdf1f1; }
+  table.sbs tr:hover td { background:#f4f7f5; }
+  .banner { background:#fff8ec; border:1px solid #f3dfb8; border-left:4px solid var(--warn); border-radius:8px; padding:12px 14px; margin:0 0 16px; font-size:13px; }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--mut); padding:10px 2px 16px; }
+  @media print { nav { display:none } .view { display:block !important } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Muwasaat — Legacy vs New System, field by field</h1>
+  <p>One application and one MBI form shown in the legacy databases and in the new system database, with the real table and column name behind every field. Values are fixed examples; the legacy application is a real case (HOF 20411343, purpose id 4663).</p>
+</header>
+<nav>
+  <button class="on" data-v="la">1 · Legacy application</button>
+  <button data-v="na">2 · New application</button>
+  <button data-v="lm">3 · Legacy MBI</button>
+  <button data-v="nm">4 · New MBI</button>
+  <button data-v="map">5 · Side-by-side difference</button>
+</nav>
+<main>
+  <div class="legend">
+    <span><b>Source:</b> legacy = <code>muw_database</code> / <code>legacy_mb</code> · new = <code>legacy_mb_gms_muwasaat</code></span>
+    <span><span class="badge warn">shaded row</span> = no value in the legacy data</span>
+  </div>
+  <div class="view on" id="la">
+  <section class="card">
+    <h3>Application header <span class="badge warn">assembled from 3 tables</span></h3>
+    <p class="sub">The legacy system has no single application record for this case: <b>muw_database.purposetable is empty</b>. These values come from the history row and the item lines.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">HOF ITS number</td>
+        <td class="val">20411343</td>
+        <td class="src"><code>prevmuwasaattable.HOF</code></td>
+        <td class="ty">varchar(8)</td>
+      </tr>
+      <tr>
+        <td class="lbl">HOF name</td>
+        <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+        <td class="src"><code>prevmuwasaattable.HOFName</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamaat</td>
+        <td class="val">ALLEPPY</td>
+        <td class="src"><code>prevmuwasaattable.JAMAAT</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamaat ID</td>
+        <td class="val">1009</td>
+        <td class="src"><code>prevmuwasaattable.JAMAAT_ID</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamiat</td>
+        <td class="val">MADRAS</td>
+        <td class="src"><code>prevmuwasaattable.JAMIAT</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Purpose</td>
+        <td class="val">HouseItems</td>
+        <td class="src"><code>houseitems (via paymentno1table.Purpose)</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Application / purpose ID<span class="hint">points to purposetable.ID — that table is empty</span></td>
+        <td class="val">4663</td>
+        <td class="src"><code>houseitems.PurposeID</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Season (Hijri year)</td>
+        <td class="val">1447 (current)</td>
+        <td class="src"><code>not stored on the item rows</code></td>
+        <td class="ty">—</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Application date<span class="hint">table empty</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>purposetable.EntryDate</code></td>
+        <td class="ty">datetime</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Entered by (ITS / role)<span class="hint">table empty</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>purposetable.EntryByITS / EntryByRole</code></td>
+        <td class="ty">varchar</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Status<span class="hint">table empty</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>purposetable.Status</code></td>
+        <td class="ty">varchar(25)</td>
+      </tr></tbody>
+    </table>
+  </section><section class="card">
+    <h3>House-Items lines <span class="badge ok">muw_database.houseitems — 3 rows</span></h3>
+    <table>
+      <thead><tr>
+        <th>Catgy<br><code>houseitems.Catgy</code></th>
+        <th>DETAILS<br><code>houseitems.DETAILS</code></th>
+        <th>QTY<br><code>houseitems.QTY</code></th>
+        <th>RATE<br><code>houseitems.RATE</code></th>
+        <th>AMOUNT<br><code>houseitems.AMOUNT</code></th>
+        <th>SEL<br><code>houseitems.SEL</code></th>
+        <th>UmmalSEL<br><code>houseitems.UmmalSEL</code></th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Appliances</td><td><code>Refigerator</code></td><td>1</td><td>20,000</td><td>20,000</td><td>1</td><td>0</td></tr><tr><td>Appliances</td><td><code>Washing_Machine</code></td><td>1</td><td>15,000</td><td>15,000</td><td>1</td><td>0</td></tr><tr><td>Room Requirement</td><td><code>CupBoard</code></td><td>2</td><td>7,500</td><td>15,000</td><td>0</td><td>0</td></tr>
+        <tr class="tot"><td colspan="4">Total of all lines</td><td>50,000</td><td colspan="2"></td></tr>
+        <tr class="tot"><td colspan="4">Total of lines with SEL = 1</td><td>35,000</td><td colspan="2"></td></tr>
+      </tbody>
+    </table>
+    <p class="sub">There is no Own Contribution, Other Contribution, currency or remarks column on these rows — those live in <code>purposetable</code>, which is empty.</p>
+  </section>
+  <section class="card">
+    <h3>Payment <span class="badge ok">muw_database.paymentno1table</span></h3>
+    <p class="sub">muw_database.paymentno1table — matched on MuwID = PurposeID and ITS = HOF.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Muwasaat ID</td>
+        <td class="val">4663</td>
+        <td class="src"><code>paymentno1table.MuwID</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">ITS</td>
+        <td class="val">20411343</td>
+        <td class="src"><code>paymentno1table.ITS</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Purpose</td>
+        <td class="val">HouseItems</td>
+        <td class="src"><code>paymentno1table.Purpose</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Amount paid<span class="hint">equals the two SEL = 1 lines in this case</span></td>
+        <td class="val">35,000</td>
+        <td class="src"><code>paymentno1table.Amount</code></td>
+        <td class="ty">double</td>
+      </tr>
+      <tr>
+        <td class="lbl">Payment date</td>
+        <td class="val">2026-02-19</td>
+        <td class="src"><code>paymentno1table.DATE</code></td>
+        <td class="ty">date</td>
+      </tr>
+      <tr>
+        <td class="lbl">UTR number</td>
+        <td class="val">CMS0502679376628</td>
+        <td class="src"><code>paymentno1table.UTRNO</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">ChMark<span class="hint">meaning not documented</span></td>
+        <td class="val">Yes</td>
+        <td class="src"><code>paymentno1table.ChMark</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Bank / account / IFSC<span class="hint">table empty</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>purposetable.AcNumber / Bankname / IFSCCode</code></td>
+        <td class="ty">varchar</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Earlier Muwasaat history for this HOF <span class="badge ok">muw_database.prevmuwasaattable</span></h3>
+    <p class="sub">muw_database.prevmuwasaattable — one row per HOF per year per purpose.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Purpose</td>
+        <td class="val">Regular Muwasaat</td>
+        <td class="src"><code>prevmuwasaattable.Purpose</code></td>
+        <td class="ty">varchar(25)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Enayat amount</td>
+        <td class="val">20,000</td>
+        <td class="src"><code>prevmuwasaattable.EnayatAmt</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Hijri year</td>
+        <td class="val">1444</td>
+        <td class="src"><code>prevmuwasaattable.MYear</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Status<span class="hint">blank for every 1441–1444 row</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>prevmuwasaattable.Status</code></td>
+        <td class="ty">varchar(10)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Currency<span class="hint">blank before 1445</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>prevmuwasaattable.Curr</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr></tbody>
+    </table>
+  </section></div>
+  <div class="view" id="na">
+  <section class="card">
+    <h3>Application record <span class="badge ok">umoor_applications</span></h3>
+    <p class="sub">One row in the applications table. The values are the legacy case loaded into the new system.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Internal id</td>
+        <td class="val">1</td>
+        <td class="src"><code>umoor_applications.id</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Reference number<span class="hint">format still to be decided (Q14)</span></td>
+        <td class="val">LEG-1447-004663</td>
+        <td class="src"><code>umoor_applications.public_id</code></td>
+        <td class="ty">varchar(40)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Applicant account</td>
+        <td class="val">1 (created from the HOF)</td>
+        <td class="src"><code>umoor_applications.household_user_id → users.id</code></td>
+        <td class="ty">bigint, required</td>
+      </tr>
+      <tr>
+        <td class="lbl">Applicant ITS</td>
+        <td class="val">20411343</td>
+        <td class="src"><code>umoor_applications.its_number</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Applicant name</td>
+        <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+        <td class="src"><code>users.full_name</code></td>
+        <td class="ty">varchar(255)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Main Umoor</td>
+        <td class="val">Muwasaat</td>
+        <td class="src"><code>umoor_applications.umoor_category_id → umoor_categories.label</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Sub Umoor</td>
+        <td class="val">Muwasaat House-Items</td>
+        <td class="src"><code>umoor_applications.umoor_subcategory_id → umoor_subcategories.label</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Campaign</td>
+        <td class="val">Muwasaat 1447</td>
+        <td class="src"><code>umoor_applications.event_umoor_id → event_umoor_categories.label</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Form used</td>
+        <td class="val">Muwasaat House-Items Application (v1)</td>
+        <td class="src"><code>umoor_applications.event_form_id → event_umoor_forms.name</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Form snapshot</td>
+        <td class="val">{ &quot;sections&quot;: [ … ] }</td>
+        <td class="src"><code>umoor_applications.form_definition_json</code></td>
+        <td class="ty">json</td>
+      </tr>
+      <tr>
+        <td class="lbl">Amount requested</td>
+        <td class="val">35,000.00</td>
+        <td class="src"><code>umoor_applications.amount_requested</code></td>
+        <td class="ty">decimal(14,2)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Status</td>
+        <td class="val">approved</td>
+        <td class="src"><code>umoor_applications.status</code></td>
+        <td class="ty">varchar(30)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Workflow stage</td>
+        <td class="val">mb_decided</td>
+        <td class="src"><code>umoor_applications.workflow_state</code></td>
+        <td class="ty">varchar(32)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamaat</td>
+        <td class="val">ALLEPPY (id 1009 via its_jamaat_id)</td>
+        <td class="src"><code>umoor_applications.jamaat_id → jamaats.name</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamiat</td>
+        <td class="val">MADRAS</td>
+        <td class="src"><code>umoor_applications.jamiat_id → jamiats.name</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Year<span class="hint">Gregorian — mapping from Hijri still to be decided (Q4)</span></td>
+        <td class="val">2026</td>
+        <td class="src"><code>umoor_applications.fiscal_year</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Created</td>
+        <td class="val">2026-02-19 00:00:00</td>
+        <td class="src"><code>umoor_applications.created_at</code></td>
+        <td class="ty">timestamp</td>
+      </tr></tbody>
+    </table>
+  </section><section class="card">
+    <h3>Form answers <span class="badge ok">umoor_applications.answers_json</span></h3>
+    <p class="sub">Every answer is stored under its own field id from the form definition (<code>event_umoor_forms.definition_json</code>).</p>
+    <table>
+      <thead><tr><th style="width:26%">Field (form label)</th><th style="width:30%">Value</th><th style="width:30%">Key in answers_json</th><th style="width:14%">Field type</th></tr></thead>
+      <tbody>
+        <tr><td class="lbl">Select Category</td><td class="val">Appliances</td><td class="src"><code>answers_json.f_hi_category</code></td><td class="ty">Dropdown</td></tr><tr><td class="lbl">Local Currency</td><td class="val">INR</td><td class="src"><code>answers_json.f_hi_currency</code></td><td class="ty">Short Text</td></tr><tr><td class="lbl">Own Contribution</td><td class="val">0</td><td class="src"><code>answers_json.f_hi_own</code></td><td class="ty">Amount</td></tr><tr><td class="lbl">Other Contribution</td><td class="val">0</td><td class="src"><code>answers_json.f_hi_other</code></td><td class="ty">Amount</td></tr><tr><td class="lbl">Enayat Araz</td><td class="val">35000</td><td class="src"><code>answers_json.f_hi_enayat</code></td><td class="ty">Amount</td></tr><tr><td class="lbl">Total</td><td class="val">35000</td><td class="src"><code>answers_json.f_hi_total</code></td><td class="ty">Amount</td></tr>
+        <tr><td class="lbl">House-Items (cart)</td><td class="val">3 rows, total 50,000</td><td class="src"><code>answers_json.f_hi_items</code></td><td class="ty">Line Items</td></tr>
+      </tbody>
+    </table>
+    <h4>Cart rows — <code>answers_json.f_hi_items.rows[]</code></h4>
+    <table>
+      <thead><tr>
+        <th>Select House-Item<br><code>c_hi_item</code></th>
+        <th>Quantity<br><code>c_hi_qty</code></th>
+        <th>Rate per Piece<br><code>c_hi_rate</code></th>
+        <th>Total<br><code>c_hi_total</code> (computed)</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Appliances — Refrigerator</td><td>1</td><td>20,000</td><td>20,000</td></tr><tr><td>Appliances — Washing Machine</td><td>1</td><td>15,000</td><td>15,000</td></tr><tr><td>Room Requirement — Cupboard</td><td>2</td><td>7,500</td><td>15,000</td></tr>
+        <tr class="tot"><td colspan="3">Cart total — <code>answers_json.f_hi_items.total</code></td><td>50,000</td></tr>
+      </tbody>
+    </table>
+    <h4>Legacy-only values kept alongside the answers</h4>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Key</th><th style="width:14%">Came from</th></tr></thead>
+      <tbody>
+        <tr><td class="lbl">Legacy purpose id</td><td class="val">4663</td><td class="src"><code>answers_json._legacy.purpose_id</code></td><td class="ty">houseitems.PurposeID</td></tr>
+        <tr><td class="lbl">Selected by department</td><td class="val">lines 1 and 2</td><td class="src"><code>answers_json._legacy.selected</code></td><td class="ty">houseitems.SEL</td></tr>
+        <tr><td class="lbl">Selected by Ummal</td><td class="val">none</td><td class="src"><code>answers_json._legacy.ummal_selected</code></td><td class="ty">houseitems.UmmalSEL</td></tr>
+        <tr><td class="lbl">Source database</td><td class="val">muw_database (season 1447)</td><td class="src"><code>answers_json._legacy.source</code></td><td class="ty">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Payment <span class="badge ok">payments</span></h3>
+    <p class="sub">The legacy payment becomes a payment record linked to the application.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Reference</td>
+        <td class="val">PAY-2026-000001</td>
+        <td class="src"><code>payments.public_id</code></td>
+        <td class="ty">varchar(32)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Application</td>
+        <td class="val">LEG-1447-004663</td>
+        <td class="src"><code>payments.umoor_application_id</code></td>
+        <td class="ty">bigint, required</td>
+      </tr>
+      <tr>
+        <td class="lbl">Amount</td>
+        <td class="val">35,000.00</td>
+        <td class="src"><code>payments.amount</code></td>
+        <td class="ty">decimal(12,2)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Status</td>
+        <td class="val">released</td>
+        <td class="src"><code>payments.status</code></td>
+        <td class="ty">varchar(24)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Transaction reference</td>
+        <td class="val">CMS0502679376628</td>
+        <td class="src"><code>payments.transaction_ref</code></td>
+        <td class="ty">varchar(128)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Released at</td>
+        <td class="val">2026-02-19</td>
+        <td class="src"><code>payments.released_at</code></td>
+        <td class="ty">timestamp</td>
+      </tr>
+      <tr>
+        <td class="lbl">Note</td>
+        <td class="val">ChMark = Yes (legacy)</td>
+        <td class="src"><code>payments.note</code></td>
+        <td class="ty">text</td>
+      </tr>
+      <tr class="missing">
+        <td class="lbl">Beneficiary / bank / account / IFSC<span class="hint">no legacy source (purposetable empty)</span></td>
+        <td class="val"><span class="empty">(blank in legacy)</span></td>
+        <td class="src"><code>payments.beneficiary_name / bank_name / account_number / ifsc_code</code></td>
+        <td class="ty">varchar</td>
+      </tr></tbody>
+    </table>
+  </section></div>
+  <div class="view" id="lm"><div class="banner">The legacy MBI lives in a separate archive database, <code>legacy_mb</code> (a copy of MMBDatabase). Those tables exist but hold <b>no rows</b> — the values below are examples that show the shape of each field. The three Muwasaat databases carry no MBI at all, only a <code>kafafrestricttable.MBIPresent</code> flag.</div>
+  <section class="card">
+    <h3>Household / house survey <span class="badge warn">legacy_mb.ahousing — 0 rows</span></h3>
+    <p class="sub">legacy_mb.ahousing — 91 columns, one row per HOF.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">HOF ITS</td>
+        <td class="val">20411343</td>
+        <td class="src"><code>ahousing.HOF</code></td>
+        <td class="ty">varchar(8)</td>
+      </tr>
+      <tr>
+        <td class="lbl">HOF name</td>
+        <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+        <td class="src"><code>ahousing.FULLNAME</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Jamaat / Jamiat</td>
+        <td class="val">ALLEPPY / MADRAS</td>
+        <td class="src"><code>ahousing.JAMAAT / JAMIAT (+ JAMAATID / JAMIATID)</code></td>
+        <td class="ty">varchar / int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Family members</td>
+        <td class="val">5</td>
+        <td class="src"><code>ahousing.FMEMBERS</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">House survey status</td>
+        <td class="val">Done</td>
+        <td class="src"><code>ahousing.HOUSESURVEYSTATUS</code></td>
+        <td class="ty">varchar(10)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Family survey status</td>
+        <td class="val">Done</td>
+        <td class="src"><code>ahousing.FAMILYSURVEYSTATUS</code></td>
+        <td class="ty">varchar(10)</td>
+      </tr>
+      <tr>
+        <td class="lbl">House questions 1–7 (type, rooms, roof, walls, floor …)</td>
+        <td class="val">H1 = Rented, H2 = 2 rooms, H3 = Average …</td>
+        <td class="src"><code>ahousing.H1 … H7</code></td>
+        <td class="ty">varchar(50) each</td>
+      </tr>
+      <tr>
+        <td class="lbl">House facilities 8–18 (yes / no list)</td>
+        <td class="val">H8 = 1, H9 = 0, H10 = 1 …</td>
+        <td class="src"><code>ahousing.H8 … H18</code></td>
+        <td class="ty">tinyint(1) each</td>
+      </tr>
+      <tr>
+        <td class="lbl">Income / expense / debts</td>
+        <td class="val">18,000 / 21,000 / 50,000</td>
+        <td class="src"><code>ahousing.INCOME / EXPENSE / DEBTS</code></td>
+        <td class="ty">double</td>
+      </tr>
+      <tr>
+        <td class="lbl">Sila Fitra / Vajebaat / FMB</td>
+        <td class="val">Yes / Yes / Partly</td>
+        <td class="src"><code>ahousing.SILAFITRA / VAJEBAAT / FMB / FMBENOUGH</code></td>
+        <td class="ty">varchar</td>
+      </tr>
+      <tr>
+        <td class="lbl">Deprivation flags</td>
+        <td class="val">House 1, Livelihood 1, Nutrition 0, Edu 1, Deen 0, Medical 1</td>
+        <td class="src"><code>ahousing.Deprived_House / _Livelihood / _Nutrition / _Edu / _Deen / _Medical</code></td>
+        <td class="ty">tinyint(1)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Marks per area</td>
+        <td class="val">House 12, Livelihood 9, Nutrition 4, Edu 7, Deen 15, Medical 6</td>
+        <td class="src"><code>ahousing.Marks_House / Marks_Livelihood / Marks_Nutrition / Marks_Edu / Marks_Deen / Marks_Medical</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Percentage per area</td>
+        <td class="val">House 60.00, Livelihood 45.00 …</td>
+        <td class="src"><code>ahousing.Pert_House / Pert_Livelihood / …</code></td>
+        <td class="ty">float(8,2)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Survey by / date</td>
+        <td class="val">Mulla Taher bhai · 2025-11-04</td>
+        <td class="src"><code>ahousing.SurveyBy / SurveyITS / SurveyDate</code></td>
+        <td class="ty">varchar / datetime</td>
+      </tr>
+      <tr>
+        <td class="lbl">LCO</td>
+        <td class="val">LCO name + ITS</td>
+        <td class="src"><code>ahousing.LCO_Name / LCO_ITS</code></td>
+        <td class="ty">varchar</td>
+      </tr>
+      <tr>
+        <td class="lbl">Verification</td>
+        <td class="val">Verified · type Physical</td>
+        <td class="src"><code>ahousing.VerifyBy / VerifyITS / VerifyDate / VerifyType / VerifyRemarks</code></td>
+        <td class="ty">varchar / datetime</td>
+      </tr>
+      <tr>
+        <td class="lbl">Budget summary</td>
+        <td class="val">Income 18,000 · Expense 21,000 · Difference −3,000</td>
+        <td class="src"><code>ahousing.BudgetIncome / BudgetExp / BudgetDiff / BudgetStatus</code></td>
+        <td class="ty">int / varchar</td>
+      </tr>
+      <tr>
+        <td class="lbl">House photos</td>
+        <td class="val">house1.jpg, house2.jpg</td>
+        <td class="src"><code>ahousing.HousePic1 / HousePic2 / PicDate</code></td>
+        <td class="ty">varchar(50)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Action plan generated</td>
+        <td class="val">1</td>
+        <td class="src"><code>ahousing.AP_Generated</code></td>
+        <td class="ty">tinyint(1)</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Per-member survey <span class="badge warn">legacy_mb.bsurvey — 0 rows</span></h3>
+    <p class="sub">legacy_mb.bsurvey — 53 columns, one row per family member. The questions are stored under coded column names.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Member ITS / HOF</td>
+        <td class="val">30712245 / 20411343</td>
+        <td class="src"><code>bsurvey.EJID / bsurvey.HOF</code></td>
+        <td class="ty">varchar(8)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Name</td>
+        <td class="val">Fatema bai Mohammadhussain bhai Patrawala</td>
+        <td class="src"><code>bsurvey.FULLNAME</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Relation / age / gender</td>
+        <td class="val">Wife / 43 / F</td>
+        <td class="src"><code>bsurvey.RELATION / AGE / GENDER</code></td>
+        <td class="ty">varchar</td>
+      </tr>
+      <tr>
+        <td class="lbl">Mobile</td>
+        <td class="val">98xxxxxx21</td>
+        <td class="src"><code>bsurvey.MOBILE</code></td>
+        <td class="ty">varchar(20)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Namaz<span class="hint">coded column name</span></td>
+        <td class="val">Some Faraz</td>
+        <td class="src"><code>bsurvey.D1</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Kalemat / Misaq<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D2</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Quran<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D3</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Madrasa<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D4</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Ashara<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D7</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Sabaq<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D8</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Moharramaat<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D9</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Raudat Tahera / Aqa Maula<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.D10</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Studying now<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E1</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Level / standard<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E2</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Medium<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E3</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Result<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E4</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Institute<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E5</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Course<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E6</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Year<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E7</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Remarks<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E8</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Qualification<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.E9</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Occupation<span class="hint">coded column name</span></td>
+        <td class="val">Daily wage</td>
+        <td class="src"><code>bsurvey.B1</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Work status<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.B2</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Medical condition<span class="hint">coded column name</span></td>
+        <td class="val">sample value</td>
+        <td class="src"><code>bsurvey.M1</code></td>
+        <td class="ty">varchar(15–100)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Income</td>
+        <td class="val">12,000</td>
+        <td class="src"><code>bsurvey.INCOME</code></td>
+        <td class="ty">double</td>
+      </tr>
+      <tr>
+        <td class="lbl">Height / weight</td>
+        <td class="val">5'4&quot; / 61</td>
+        <td class="src"><code>bsurvey.Height / Weight</code></td>
+        <td class="ty">varchar(10)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Deprivation flags</td>
+        <td class="val">Livelihood 1, Edu 0, Deen 1, Medical 0</td>
+        <td class="src"><code>bsurvey.Deprived_Livelihood / _Edu / _Deen / _Medical</code></td>
+        <td class="ty">tinyint(1)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Marks</td>
+        <td class="val">Livelihood 8, Edu 5, Deen 12, Medical 3</td>
+        <td class="src"><code>bsurvey.Marks_Livelihood / _Edu / _Deen / _Medical</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Percentages</td>
+        <td class="val">Livelihood 40, Edu 25, Deen 60, Medical 15</td>
+        <td class="src"><code>bsurvey.Pert_Livelihood / _Edu / _Deen / _Medical</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Survey by / date / status</td>
+        <td class="val">Mulla Taher bhai · 2025-11-04 · Done</td>
+        <td class="src"><code>bsurvey.SurveyBy / SurveyITS / SurveyDate / Status</code></td>
+        <td class="ty">varchar / datetime</td>
+      </tr>
+      <tr>
+        <td class="lbl">Is child</td>
+        <td class="val">0</td>
+        <td class="src"><code>bsurvey.IsChild</code></td>
+        <td class="ty">tinyint(1)</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Household budget <span class="badge warn">legacy_mb.budgettable_copy — 0 rows</span></h3>
+    <p class="sub">legacy_mb.budgettable_copy — 69 columns. Each line is one amount; “_M” columns hold the monthly figure.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">HOF / name</td>
+        <td class="val">20411343 · Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+        <td class="src"><code>budgettable_copy.HOF / HOFName</code></td>
+        <td class="ty">varchar</td>
+      </tr>
+      <tr>
+        <td class="lbl">Earning members / dependants / family size</td>
+        <td class="val">2 / 3 / 5</td>
+        <td class="src"><code>budgettable_copy.EarningMembers / Dependants / FM</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Currency</td>
+        <td class="val">INR</td>
+        <td class="src"><code>budgettable_copy.Curr</code></td>
+        <td class="ty">varchar(40)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Income lines</td>
+        <td class="val">Business 0 · Profession 0 · Salary 18,000 · Investment 0 · Property rent 0 · Home industry 0 · Other 0</td>
+        <td class="src"><code>budgettable_copy.Business / Profession / Salary / Investment / PropertyRent / HomeIndustry / OtherIncome</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Total income</td>
+        <td class="val">18,000</td>
+        <td class="src"><code>budgettable_copy.TotalIncome</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Deeni expenses</td>
+        <td class="val">Wajebaat · FMB · Jamaat · Ziyarat · Ashara · Qarzan · Other</td>
+        <td class="src"><code>budgettable_copy.Wajebaat / FMB / JamaatExp / Ziyarat / Ashara / Qarzan / OtherDeen (+ _M)</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Education expenses</td>
+        <td class="val">School 2,500 · Tuition 1,000 · Stationery 300 · Toys 0 · Newspapers 0</td>
+        <td class="src"><code>budgettable_copy.SchoolFees / TutionFees / Stationery / Toys / Newspapers / EduTotal</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Food expenses</td>
+        <td class="val">Grocery 7,000 · Dine out 500 · Essentials 1,200</td>
+        <td class="src"><code>budgettable_copy.Grocery / DineOut / Essentials / FoodTotal</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Health expenses</td>
+        <td class="val">Doctor 800 · Eye care 0 · Medicines 1,500 · Vacation 0 · Sports 0 · Other 0</td>
+        <td class="src"><code>budgettable_copy.Doctor / EyeCare / Medicines / Vacation / Sports / OtherHealth / HealthTotal</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Living expenses</td>
+        <td class="val">Rent 4,000 · Gas 800 · Electricity 900 · Phone 400 · Water 150 · Cable 0 · Internet 500 · Maids 0 · Clothes 600 · Appliances 0 · Other 0</td>
+        <td class="src"><code>budgettable_copy.Rent / Gas / Electricity / Telephone / Water / Cable / Internet / Maids / Clothes / Appliances / LivingOther / LivingTotal</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Total expense / difference</td>
+        <td class="val">21,000 / −3,000</td>
+        <td class="src"><code>budgettable_copy.TotalExp / TotalDiff</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Surplus / deficit</td>
+        <td class="val">0 / 3,000</td>
+        <td class="src"><code>budgettable_copy.Surplus / Deficit</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Status / remarks / survey</td>
+        <td class="val">Done · — · Mulla Taher bhai 2025-11-04</td>
+        <td class="src"><code>budgettable_copy.Status / Remarks / SurveyBy / SurveyITS / SurveyDate</code></td>
+        <td class="ty">varchar / text / datetime</td>
+      </tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Action plans <span class="badge warn">legacy_mb.actionplans — 0 rows</span></h3>
+    <p class="sub">legacy_mb.actionplans + actionplans_master — the plan generated from the survey.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">HOF</td>
+        <td class="val">20411343</td>
+        <td class="src"><code>actionplans.HOF</code></td>
+        <td class="ty">varchar(8)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Action plan id</td>
+        <td class="val">14</td>
+        <td class="src"><code>actionplans.APID → actionplans_master.ID</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Action plan text</td>
+        <td class="val">Enrol children in madrasa</td>
+        <td class="src"><code>actionplans_master.ActionPlan</code></td>
+        <td class="ty">varchar(255)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Umoor</td>
+        <td class="val">Deen</td>
+        <td class="src"><code>actionplans_master.Umoor</code></td>
+        <td class="ty">varchar(15)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Triggering answer</td>
+        <td class="val">Madrasa = No</td>
+        <td class="src"><code>actionplans_master.Answer</code></td>
+        <td class="ty">varchar(100)</td>
+      </tr></tbody>
+    </table>
+  </section></div>
+  <div class="view" id="nm">
+  <section class="card">
+    <h3>MBI record <span class="badge ok">mbi_submissions</span></h3>
+    <p class="sub">The MBI header for this application.</p>
+    <table>
+      <thead><tr><th style="width:26%">Field</th><th style="width:30%">Value</th><th style="width:30%">Table . column</th><th style="width:14%">Type</th></tr></thead>
+      <tbody>
+      <tr>
+        <td class="lbl">Internal id</td>
+        <td class="val">1</td>
+        <td class="src"><code>mbi_submissions.id</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Reference</td>
+        <td class="val">MBI-2026-0001</td>
+        <td class="src"><code>mbi_submissions.public_id</code></td>
+        <td class="ty">varchar(40)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Application</td>
+        <td class="val">LEG-1447-004663</td>
+        <td class="src"><code>mbi_submissions.application_id</code></td>
+        <td class="ty">bigint, one per application</td>
+      </tr>
+      <tr>
+        <td class="lbl">Status</td>
+        <td class="val">submitted</td>
+        <td class="src"><code>mbi_submissions.status</code></td>
+        <td class="ty">varchar(16)</td>
+      </tr>
+      <tr>
+        <td class="lbl">Total score</td>
+        <td class="val">34</td>
+        <td class="src"><code>mbi_submissions.total_score</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Maximum score</td>
+        <td class="val">60</td>
+        <td class="src"><code>mbi_submissions.max_score</code></td>
+        <td class="ty">int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Filled by</td>
+        <td class="val">LCO (user id 6)</td>
+        <td class="src"><code>mbi_submissions.filled_by_user_id</code></td>
+        <td class="ty">bigint</td>
+      </tr>
+      <tr>
+        <td class="lbl">Submitted at</td>
+        <td class="val">2026-02-15 11:20</td>
+        <td class="src"><code>mbi_submissions.submitted_at</code></td>
+        <td class="ty">timestamp</td>
+      </tr>
+      <tr>
+        <td class="lbl">MBI form + version</td>
+        <td class="val">Main MBI Assessment · v8</td>
+        <td class="src"><code>mbi_submissions.mbi_form_id / form_version</code></td>
+        <td class="ty">bigint / int</td>
+      </tr>
+      <tr>
+        <td class="lbl">Scoring tree</td>
+        <td class="val">{ compositeScorePct: 67, compositeBand: &quot;high&quot;, dimensions: [ … ] }</td>
+        <td class="src"><code>mbi_submissions.umoor_scoring_tree_json</code></td>
+        <td class="ty">text (JSON)</td>
+      </tr></tbody>
+    </table>
+  </section><div class="banner">Household sections are stored together in <code>mbi_household.data_json</code> as <code>{ "fields": { field id: answer }, "sectionScores": { section id: { score, max } } }</code>. Per-member sections are stored one row per member per section in <code>mbi_member_domains</code> (<code>domain</code> = the section id).</div><h2 class="grp">Household sections — <code>mbi_household.data_json</code></h2>
+  <section class="card">
+    <h3>Family Medical Information <span class="badge ok">once per household</span><span class="badge score">score 8 / 10</span></h3>
+    <p class="sub">Section id <code>s_hh_medical</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Any child died under 18 yrs of age in last 5 years?</td><td class="val">No</td><td class="src"><code>f_hh_child_died</code></td><td class="ty">Radio Buttons</td><td class="pts">—</td></tr><tr><td class="lbl">If Yes, Reason</td><td class="val">Hereditary</td><td class="src"><code>f_hh_child_died_reason</code></td><td class="ty">Dropdown</td><td class="pts">3 / 5</td></tr><tr><td class="lbl">All children 0-18 years vaccinated?</td><td class="val">No</td><td class="src"><code>f_hh_vaccinated</code></td><td class="ty">Radio Buttons</td><td class="pts">—</td></tr><tr><td class="lbl">If No, Reason</td><td class="val">Clinic Far</td><td class="src"><code>f_hh_vaccinated_reason</code></td><td class="ty">Dropdown</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">If Other, please specify</td><td class="val">sample value</td><td class="src"><code>f_hh_vaccinated_reason_other</code></td><td class="ty">Short Text</td><td class="pts">—</td></tr><tr><td class="lbl">Remark</td><td class="val">—</td><td class="src"><code>f_hh_medical_remark</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Family Nutrition Information <span class="badge ok">once per household</span><span class="badge score">score 3 / 5</span></h3>
+    <p class="sub">Section id <code>s_hh_nutri</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Do you take FMB Thali?</td><td class="val">No</td><td class="src"><code>f_hh_thali</code></td><td class="ty">Radio Buttons</td><td class="pts">—</td></tr><tr><td class="lbl">If No, Reason</td><td class="val">Long Distance</td><td class="src"><code>f_hh_thali_reason</code></td><td class="ty">Dropdown</td><td class="pts">3 / 5</td></tr><tr><td class="lbl">Remark</td><td class="val">—</td><td class="src"><code>f_hh_nutri_remark</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Family Housing Information <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_hh_housing</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Family Member Count - Adult</td><td class="val">3</td><td class="src"><code>f_hh_adult_count</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">Children in the family</td><td class="val">3</td><td class="src"><code>f_hh_children_count</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">House Title</td><td class="val">Paghdi</td><td class="src"><code>f_hh_house_title</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">House Category</td><td class="val">11-20</td><td class="src"><code>f_hh_house_category</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Do you have another house?</td><td class="val">Current City/Town</td><td class="src"><code>f_hh_another_house</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Neighbourhood</td><td class="val">Muslimeen</td><td class="src"><code>f_hh_neighbourhood</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Structure Age of house / building</td><td class="val">11-20</td><td class="src"><code>f_hh_structure_age</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">House Structure is made of?</td><td class="val">Kutcha</td><td class="src"><code>f_hh_structure_material</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Current House Type</td><td class="val">1 BHK</td><td class="src"><code>f_hh_house_type</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Carpet Area (Sq.Ft.)</td><td class="val">200-300</td><td class="src"><code>f_hh_carpet_area</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Drinking Water</td><td class="val">Boring</td><td class="src"><code>f_hh_drinking_water</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Type of water</td><td class="val">Non-filtered</td><td class="src"><code>f_hh_water_type</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Sanitation (Baitul Khala/Toilet)</td><td class="val">Outside</td><td class="src"><code>f_hh_sanitation</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Walls</td><td class="val">Average</td><td class="src"><code>f_hh_walls</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Roof</td><td class="val">Average</td><td class="src"><code>f_hh_roof</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Floor</td><td class="val">Average</td><td class="src"><code>f_hh_floor</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Daily Power Cut? hours</td><td class="val">3-6</td><td class="src"><code>f_hh_power_cut</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Water Leakage</td><td class="val">Seepage</td><td class="src"><code>f_hh_water_leakage</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Power Backup?</td><td class="val">Generator</td><td class="src"><code>f_hh_power_backup</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Pest Control?</td><td class="val">Sometimes</td><td class="src"><code>f_hh_pest_control</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Household Assets</td><td class="val">Radio</td><td class="src"><code>f_hh_assets</code></td><td class="ty">Checkboxes</td><td class="pts">—</td></tr><tr><td class="lbl">Taharat Ashya</td><td class="val">Namaazi Chakhri</td><td class="src"><code>f_hh_taharat</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Remark</td><td class="val">—</td><td class="src"><code>f_hh_housing_remark</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Family Livelihood Information <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_hh_livelihood</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Monthly Household Income</td><td class="val">5,000</td><td class="src"><code>f_hh_income</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Monthly Household Expenses</td><td class="val">5,000</td><td class="src"><code>f_hh_expense</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Any Debt?</td><td class="val">sample value</td><td class="src"><code>f_hh_debt</code></td><td class="ty">Short Text</td><td class="pts">—</td></tr><tr><td class="lbl">Debt EMI</td><td class="val">5,000</td><td class="src"><code>f_hh_debt_emi</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">EMI Paid</td><td class="val">5,000</td><td class="src"><code>f_hh_emi_paid</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Remaining EMI</td><td class="val">5,000</td><td class="src"><code>f_hh_emi_remaining</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Remark</td><td class="val">—</td><td class="src"><code>f_hh_livelihood_remark</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Family Monthly Income <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_income</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Business (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_business_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Business (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_business_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Profession (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_profession_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Profession (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_profession_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Salary (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_salary_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Salary (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_salary_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Investment (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_investment_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Investment (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_investment_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Property Rent (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_property_rent_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Property Rent (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_property_rent_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Home Industry (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_home_industry_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Home Industry (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_home_industry_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Income (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_other_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Income (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_other_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Surplus from last month (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_surplus_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Surplus from last month (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_surplus_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Deficit from last month (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bi_deficit_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Deficit from last month (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bi_deficit_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">TOTAL Monthly Income</td><td class="val">5,000</td><td class="src"><code>f_bi_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Deeni Expenses <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_deeni</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Wajebat/Khumus (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_wajebat_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Wajebat/Khumus (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_wajebat_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">FMB Thali/Niyaaz (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_thali_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">FMB Thali/Niyaaz (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_thali_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Jamat/Sabeel (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_jamat_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Jamat/Sabeel (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_jamat_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Ziyarat (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_ziyarat_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Ziyarat (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_ziyarat_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Ashara Mubaraka (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_ashara_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Ashara Mubaraka (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_ashara_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Qardan Hasana (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_qardan_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Qardan Hasana (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_qardan_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_other_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_bd_other_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">TOTAL Deeni Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_bd_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Household Expenses <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_hhexp</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Groceries &amp; Household Supplies (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_groceries_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Groceries &amp; Household Supplies (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_groceries_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Restaurants/Dine Out (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_restaurants_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Restaurants/Dine Out (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_restaurants_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Essentials (Milk, Tea, Eggs, Biscuits etc.) (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_essentials_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Essentials (Milk, Tea, Eggs, Biscuits etc.) (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_essentials_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Rent/Maintenance Cost (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_rent_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Rent/Maintenance Cost (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_rent_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Gas (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_gas_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Gas (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_gas_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Electricity (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_electricity_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Electricity (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_electricity_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Telephone/Mobile Recharges (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_telephone_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Telephone/Mobile Recharges (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_telephone_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Water (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_water_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Water (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_water_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Cable/Internet (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_cable_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Cable/Internet (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_cable_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">House Help (Maid) (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_househelp_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">House Help (Maid) (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_househelp_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Clothing &amp; Accessories (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_clothing_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Clothing &amp; Accessories (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_clothing_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Appliance Maintenance (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_appliance_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Appliance Maintenance (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_appliance_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_other_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_he_other_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">TOTAL Household Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_he_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Education Expenses <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_edu</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">School Fees (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_school_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">School Fees (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_school_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Tuition Fees (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_tuition_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Tuition Fees (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_tuition_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Stationery Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_stationery_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Stationery Expenses (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_stationery_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Toys/Games/Books (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_toys_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Toys/Games/Books (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_toys_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Newspaper/Magazines (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_newspaper_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Newspaper/Magazines (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_newspaper_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_other_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_ee_other_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">TOTAL Education Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_ee_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Health Expenses <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_health</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Doctor/Dental (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_doctor_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Doctor/Dental (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_doctor_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Glasses &amp; Eye Care (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_glasses_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Glasses &amp; Eye Care (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_glasses_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Medicines (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_medicines_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Medicines (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_medicines_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Picnic/Vacations (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_picnic_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Picnic/Vacations (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_picnic_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Swimming, Sports, Gym (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_swim_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Swimming, Sports, Gym (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_swim_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_other_m</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Other Expenses (Yearly)</td><td class="val">5,000</td><td class="src"><code>f_hex_other_y</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">TOTAL Health Expenses (Monthly)</td><td class="val">5,000</td><td class="src"><code>f_hex_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Budget Summary &amp; Survey Details <span class="badge ok">once per household</span></h3>
+    <p class="sub">Section id <code>s_budget_summary</code> · stored in <code>mbi_household.data_json → fields</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">TOTAL Monthly Expenses (All Categories)</td><td class="val">5,000</td><td class="src"><code>f_budget_expense_grand_total</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Currency</td><td class="val">USD</td><td class="src"><code>f_budget_currency</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Earning Members</td><td class="val">3</td><td class="src"><code>f_budget_earning_members</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">Dependents</td><td class="val">3</td><td class="src"><code>f_budget_dependents</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">Total family members</td><td class="val">3</td><td class="src"><code>f_budget_total_members</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">Survey Date</td><td class="val">2026-02-10</td><td class="src"><code>f_budget_survey_date</code></td><td class="ty">Date</td><td class="pts">—</td></tr><tr><td class="lbl">Survey filled by (ITS)</td><td class="val">(from ITS profile)</td><td class="src"><code>f_budget_survey_its</code></td><td class="ty">ITS Field</td><td class="pts">—</td></tr><tr><td class="lbl">Survey filled by (Name)</td><td class="val">sample value</td><td class="src"><code>f_budget_survey_name</code></td><td class="ty">Short Text</td><td class="pts">—</td></tr><tr><td class="lbl">Remark</td><td class="val">—</td><td class="src"><code>f_budget_remark</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section><h2 class="grp">Family members — <code>mbi_members</code></h2><section class="card">
+    <h3>Members assessed <span class="badge ok">mbi_members — 5 rows</span></h3>
+    <table>
+      <thead><tr>
+        <th>ITS<br><code>mbi_members.its_id</code></th>
+        <th>Name<br><code>mbi_members.full_name</code></th>
+        <th>Relation<br><code>mbi_members.relation</code></th>
+        <th>Age<br><code>mbi_members.age</code></th>
+        <th>Completed<br><code>mbi_members.completion_pct</code></th>
+      </tr></thead>
+      <tbody>
+        <tr><td>20411343</td><td>Mohammadhussain bhai Ibrahim bhai Patrawala</td><td>Head of Household</td><td>52</td><td>100%</td></tr>
+        <tr><td>30712245</td><td>Fatema bai Mohammadhussain bhai Patrawala</td><td>Wife</td><td>43</td><td>100%</td></tr>
+        <tr><td>50411901</td><td>Juzer bhai Mohammadhussain bhai Patrawala</td><td>Son</td><td>19</td><td>100%</td></tr>
+        <tr><td>50411902</td><td>Zainab bai Mohammadhussain bhai Patrawala</td><td>Daughter</td><td>16</td><td>100%</td></tr>
+        <tr><td>20411001</td><td>Ibrahim bhai Patrawala</td><td>Father</td><td>78</td><td>14%</td></tr>
+      </tbody>
+    </table>
+  </section><h2 class="grp">Per-member sections — <code>mbi_member_domains</code> (shown for the Head of Household)</h2>
+  <section class="card">
+    <h3>Personal Details <span class="badge info">per family member</span></h3>
+    <p class="sub">Section id <code>s_ind_contact</code> · stored in <code>mbi_member_domains.answers_json (domain = 's_ind_contact')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Contact No.</td><td class="val">98xxxxxx21</td><td class="src"><code>f_ind_contact_no</code></td><td class="ty">Phone Number</td><td class="pts">—</td></tr><tr><td class="lbl">Email</td><td class="val">name@example.com</td><td class="src"><code>f_ind_email</code></td><td class="ty">Email Address</td><td class="pts">—</td></tr><tr><td class="lbl">Marital Status</td><td class="val">Single</td><td class="src"><code>f_ind_marital</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Deen Foundation Information (Action Plan) <span class="badge info">per family member</span><span class="badge score">score 30 / 35</span></h3>
+    <p class="sub">Section id <code>s_deenfound</code> · scores toward Umoor id 1 · stored in <code>mbi_member_domains.answers_json (domain = 's_deenfound')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Kalemat-us-shahadat</td><td class="val">No</td><td class="src"><code>f_ind_kalema</code></td><td class="ty">Radio Buttons</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">Aqa Maula's Name</td><td class="val">No</td><td class="src"><code>f_ind_aqamaula</code></td><td class="ty">Radio Buttons</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">Misaq of Dai-al-Zaman</td><td class="val">No</td><td class="src"><code>f_ind_misaq</code></td><td class="ty">Radio Buttons</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">Raudat Tahera Ziyarat</td><td class="val">No</td><td class="src"><code>f_ind_raudat</code></td><td class="ty">Radio Buttons</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">Attend Ashara</td><td class="val">Some days</td><td class="src"><code>f_ind_ashara</code></td><td class="ty">Radio Buttons</td><td class="pts">5 / 10</td></tr><tr><td class="lbl">Moharamaat</td><td class="val">Alchohol</td><td class="src"><code>f_ind_moharamaat</code></td><td class="ty">Dropdown</td><td class="pts">5 / 5</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_deenfound_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Deen Information (Scoring) <span class="badge info">per family member</span><span class="badge score">score 3 / 15</span></h3>
+    <p class="sub">Section id <code>s_deenprac</code> · scores toward Umoor id 1 · stored in <code>mbi_member_domains.answers_json (domain = 's_deenprac')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Pray Namaz Daily</td><td class="val">Some Faraz</td><td class="src"><code>f_ind_namaz</code></td><td class="ty">Radio Buttons</td><td class="pts">3 / 5</td></tr><tr><td class="lbl">Recite Quran</td><td class="val">Jayyed</td><td class="src"><code>f_ind_quran_recite</code></td><td class="ty">Dropdown</td><td class="pts">0 / 5</td></tr><tr><td class="lbl">Madrasa Attended/Pursuing?</td><td class="val">N/A</td><td class="src"><code>f_ind_madrasa</code></td><td class="ty">Dropdown</td><td class="pts">0 / 5</td></tr><tr><td class="lbl">Quran Surah Hifz</td><td class="val">Al-Balad</td><td class="src"><code>f_ind_quran_hifz</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_deenprac_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Educational Information <span class="badge info">per family member</span></h3>
+    <p class="sub">Section id <code>s_edu</code> · scores toward Umoor id 2 · stored in <code>mbi_member_domains.answers_json (domain = 's_edu')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Highest Education</td><td class="val">Primary</td><td class="src"><code>f_ind_highest_edu</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Pursuing</td><td class="val">No</td><td class="src"><code>f_ind_edu_pursuing</code></td><td class="ty">Radio Buttons</td><td class="pts">—</td></tr><tr><td class="lbl">Edu. Medium</td><td class="val">Hindi</td><td class="src"><code>f_ind_edu_medium</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Dropped Out Reason</td><td class="val">Financial Issues</td><td class="src"><code>f_ind_dropout_reason</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_edu_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Medical Information <span class="badge info">per family member</span></h3>
+    <p class="sub">Section id <code>s_medical</code> · scores toward Umoor id 4 · stored in <code>mbi_member_domains.answers_json (domain = 's_medical')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Any Illness? Physical/Mental/Chronical</td><td class="val">Migraine</td><td class="src"><code>f_ind_illness</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Stage / Severity</td><td class="val">Acute Phase (Crisis / Onset)</td><td class="src"><code>f_ind_illness_stage</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Regular Illness Reason</td><td class="val">High Stress / Anxiety</td><td class="src"><code>f_ind_illness_reason</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Treatment Ongoing?</td><td class="val">No</td><td class="src"><code>f_ind_treatment_ongoing</code></td><td class="ty">Radio Buttons</td><td class="pts">—</td></tr><tr><td class="lbl">Ongoing Treatment</td><td class="val">sample value</td><td class="src"><code>f_ind_ongoing_treatment</code></td><td class="ty">Short Text</td><td class="pts">—</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_medical_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Livelihood Information <span class="badge info">per family member</span></h3>
+    <p class="sub">Section id <code>s_livelihood</code> · scores toward Umoor id 6 · stored in <code>mbi_member_domains.answers_json (domain = 's_livelihood')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Occupation</td><td class="val">Homemaker</td><td class="src"><code>f_ind_occupation</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Nature of Job/Business</td><td class="val">sample value</td><td class="src"><code>f_ind_job_nature</code></td><td class="ty">Short Text</td><td class="pts">—</td></tr><tr><td class="lbl">Any Part time work?</td><td class="val">Homemaker</td><td class="src"><code>f_ind_parttime</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Upskill Required?</td><td class="val">Workshop</td><td class="src"><code>f_ind_upskill</code></td><td class="ty">Dropdown</td><td class="pts">—</td></tr><tr><td class="lbl">Monthly Income-Primary</td><td class="val">5,000</td><td class="src"><code>f_ind_income_primary</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Monthly Income-Secondary</td><td class="val">5,000</td><td class="src"><code>f_ind_income_secondary</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_livelihood_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section>
+  <section class="card">
+    <h3>Nutrition Information <span class="badge info">per family member</span></h3>
+    <p class="sub">Section id <code>s_nutrition</code> · scores toward Umoor id 3 · stored in <code>mbi_member_domains.answers_json (domain = 's_nutrition')</code></p>
+    <table>
+      <thead><tr><th style="width:30%">Question (form label)</th><th style="width:24%">Answer</th><th style="width:22%">Field id (key in JSON)</th><th style="width:12%">Type</th><th style="width:12%">Points</th></tr></thead>
+      <tbody><tr><td class="lbl">Height (cm)</td><td class="val">3</td><td class="src"><code>f_ind_height</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">Weight (kg)</td><td class="val">3</td><td class="src"><code>f_ind_weight</code></td><td class="ty">Number</td><td class="pts">—</td></tr><tr><td class="lbl">BMI</td><td class="val">5,000</td><td class="src"><code>f_ind_bmi</code></td><td class="ty">Amount</td><td class="pts">—</td></tr><tr><td class="lbl">Remarks</td><td class="val">—</td><td class="src"><code>f_ind_nutrition_remarks</code></td><td class="ty">Long Text</td><td class="pts">—</td></tr></tbody>
+    </table>
+  </section></div>
+  <div class="view" id="map">
+  
+  <section class="card">
+    <h3>Difference summary</h3>
+    <table>
+      <thead><tr><th>Difference</th><th>What it means</th><th style="width:14%">Application</th><th style="width:14%">MBI</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge same">carried as-is</span></td><td>Same value, same meaning — only the column name changes.</td><td>8</td><td>12</td></tr>
+        <tr><td><span class="badge conv">converted</span></td><td>Value is transformed: a name becomes an id, one column becomes several, or a total is recalculated.</td><td>8</td><td>22</td></tr>
+        <tr><td><span class="badge lonly">legacy only</span></td><td>Exists in the legacy database but has no column in the new system — kept under <code>_legacy</code> or dropped.</td><td>5</td><td>6</td></tr>
+        <tr><td><span class="badge nonly">new only</span></td><td>Required or added by the new system with no legacy source.</td><td>7</td><td>5</td></tr>
+        <tr><td><span class="badge gap">no legacy data</span></td><td>The legacy column exists but its table is empty, so nothing can be migrated.</td><td>9</td><td>1</td></tr>
+        <tr><td><span class="badge ask">to confirm</span></td><td>Mapping cannot be decided without an answer from the client.</td><td>3</td><td>3</td></tr>
+      </tbody>
+    </table>
+  </section>
+  
+  <section class="card">
+    <h3>Application — legacy field beside new field</h3>
+    <p class="sub">The real case: HOF 20411343, purpose id 4663. Left = what the legacy database holds. Right = where it lands in the new system.</p>
+    <table class="sbs">
+      <thead><tr>
+        <th colspan="2" class="hl">LEGACY — muw_database / legacy_mb</th>
+        <th colspan="2" class="hn">NEW SYSTEM — legacy_mb_gms_muwasaat</th>
+        <th rowspan="2" style="width:13%">Difference</th>
+      </tr><tr>
+        <th style="width:21%" class="hl">Table . column</th><th style="width:16%" class="hl">Value</th>
+        <th style="width:24%" class="hn">Table . column / JSON key</th><th style="width:16%" class="hn">Value</th>
+      </tr></thead>
+      <tbody><tr class="st-same">
+      <td class="src"><code>prevmuwasaattable.HOF</code></td>
+      <td class="val">20411343</td>
+      <td class="src"><code>umoor_applications.its_number</code></td>
+      <td class="val">20411343</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>prevmuwasaattable.HOFName</code></td>
+      <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+      <td class="src"><code>users.full_name</code></td>
+      <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+      <td><span class="badge conv">converted</span><span class="hint">a user account is created; household_user_id is required</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.household_user_id</code></td>
+      <td class="val">1</td>
+      <td><span class="badge nonly">new only</span><span class="hint">no legacy equivalent</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>prevmuwasaattable.JAMAAT_ID</code></td>
+      <td class="val">1009</td>
+      <td class="src"><code>umoor_applications.jamaat_id</code></td>
+      <td class="val">542</td>
+      <td><span class="badge conv">converted</span><span class="hint">looked up via jamaats.its_jamaat_id = 1009</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>prevmuwasaattable.JAMAAT</code></td>
+      <td class="val">ALLEPPY</td>
+      <td class="src"><code>jamaats.name</code></td>
+      <td class="val">ALLEPPY</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>prevmuwasaattable.JAMIAT</code></td>
+      <td class="val">MADRAS</td>
+      <td class="src"><code>umoor_applications.jamiat_id → jamiats.name</code></td>
+      <td class="val">14 → Madras</td>
+      <td><span class="badge conv">converted</span><span class="hint">name matched to the master</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>paymentno1table.Purpose</code></td>
+      <td class="val">HouseItems</td>
+      <td class="src"><code>umoor_applications.umoor_subcategory_id</code></td>
+      <td class="val">21 (Muwasaat House-Items)</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.umoor_category_id</code></td>
+      <td class="val">12 (Muwasaat)</td>
+      <td><span class="badge nonly">new only</span><span class="hint">legacy has no Main Umoor column</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>houseitems.PurposeID</code></td>
+      <td class="val">4663</td>
+      <td class="src"><code>answers_json._legacy.purpose_id</code></td>
+      <td class="val">4663</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">kept for traceability; points to the empty purposetable</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>houseitems.Catgy</code></td>
+      <td class="val">Appliances</td>
+      <td class="src"><code>answers_json.f_hi_category</code></td>
+      <td class="val">Appliances</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>houseitems.DETAILS</code></td>
+      <td class="val">Refigerator</td>
+      <td class="src"><code>answers_json.f_hi_items.rows[].c_hi_item</code></td>
+      <td class="val">Appliances — Refrigerator</td>
+      <td><span class="badge conv">converted</span><span class="hint">spelling fixed, category prefixed</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>houseitems.QTY</code></td>
+      <td class="val">1</td>
+      <td class="src"><code>answers_json.f_hi_items.rows[].c_hi_qty</code></td>
+      <td class="val">1</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>houseitems.RATE</code></td>
+      <td class="val">20,000</td>
+      <td class="src"><code>answers_json.f_hi_items.rows[].c_hi_rate</code></td>
+      <td class="val">20,000</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>houseitems.AMOUNT</code></td>
+      <td class="val">20,000</td>
+      <td class="src"><code>answers_json.f_hi_items.rows[].c_hi_total</code></td>
+      <td class="val">20,000</td>
+      <td><span class="badge conv">converted</span><span class="hint">recomputed as qty × rate</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>houseitems.SEL</code></td>
+      <td class="val">1</td>
+      <td class="src"><code>answers_json._legacy.selected</code></td>
+      <td class="val">1</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">no “selected line” concept in the new system (Q12)</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>houseitems.UmmalSEL</code></td>
+      <td class="val">0</td>
+      <td class="src"><code>answers_json._legacy.ummal_selected</code></td>
+      <td class="val">0</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">Q12</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>answers_json.f_hi_own</code></td>
+      <td class="val">0</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">Own Contribution is not stored in houseitems</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>answers_json.f_hi_other</code></td>
+      <td class="val">0</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">Other Contribution is not stored in houseitems</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>answers_json.f_hi_currency</code></td>
+      <td class="val">INR</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">the item rows carry no currency</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>prevmuwasaattable.EnayatAmt</code></td>
+      <td class="val">20,000 (year 1444)</td>
+      <td class="src"><code>umoor_applications.amount_requested</code></td>
+      <td class="val">35,000</td>
+      <td><span class="badge ask">to confirm</span><span class="hint">history amount vs paid amount differ — which one is the request? (Q1/Q9)</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>prevmuwasaattable.Status</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>umoor_applications.status / workflow_state</code></td>
+      <td class="val">approved / mb_decided</td>
+      <td><span class="badge ask">to confirm</span><span class="hint">blank for 1441–1444 (Q3)</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>prevmuwasaattable.MYear</code></td>
+      <td class="val">1444 / season 1447</td>
+      <td class="src"><code>umoor_applications.event_umoor_id</code></td>
+      <td class="val">Muwasaat 1447 campaign</td>
+      <td><span class="badge conv">converted</span><span class="hint">one campaign per Hijri year</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>prevmuwasaattable.MYear</code></td>
+      <td class="val">1447 (Hijri)</td>
+      <td class="src"><code>umoor_applications.fiscal_year</code></td>
+      <td class="val">2026 (Gregorian)</td>
+      <td><span class="badge ask">to confirm</span><span class="hint">Hijri → Gregorian rule not decided (Q4)</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>prevmuwasaattable.Curr</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>answers_json._legacy.currency</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">the new system has no currency column (Q7)</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>paymentno1table.MuwID</code></td>
+      <td class="val">4663</td>
+      <td class="src"><code>payments.umoor_application_id</code></td>
+      <td class="val">1 (LEG-1447-004663)</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>paymentno1table.Amount</code></td>
+      <td class="val">35,000</td>
+      <td class="src"><code>payments.amount</code></td>
+      <td class="val">35,000.00</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>paymentno1table.DATE</code></td>
+      <td class="val">2026-02-19</td>
+      <td class="src"><code>payments.released_at</code></td>
+      <td class="val">2026-02-19</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>paymentno1table.UTRNO</code></td>
+      <td class="val">CMS0502679376628</td>
+      <td class="src"><code>payments.transaction_ref</code></td>
+      <td class="val">CMS0502679376628</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>paymentno1table.ChMark</code></td>
+      <td class="val">Yes</td>
+      <td class="src"><code>payments.note</code></td>
+      <td class="val">ChMark = Yes (legacy)</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">meaning undocumented (Q8)</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.EntryDate</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>umoor_applications.created_at</code></td>
+      <td class="val">2026-02-19</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">purposetable is empty — date taken from the payment</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.Status</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>umoor_applications.workflow_state</code></td>
+      <td class="val">mb_decided</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">purposetable is empty</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.AcNumber / Bankname / IFSCCode</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>payments.account_number / bank_name / ifsc_code</code></td>
+      <td class="val">—</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">purposetable is empty</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.EduType / School / Course / ScStd</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>answers_json.f_edu_type / f_edu_institute / f_edu_course / f_edu_std</code></td>
+      <td class="val">—</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">education details unavailable</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.PdfFile / HousePdfFile / MedPdfFile</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>uploaded_files + umoor_application_documents</code></td>
+      <td class="val">—</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">documents unavailable</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>purposetable.DeptAmt / TMLAmt</code></td>
+      <td class="val"><span class="empty">(blank)</span></td>
+      <td class="src"><code>amount_adjustments.new_value</code></td>
+      <td class="val">—</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">approval amounts unavailable</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.public_id</code></td>
+      <td class="val">LEG-1447-004663</td>
+      <td><span class="badge nonly">new only</span><span class="hint">format to be decided (Q14)</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.form_definition_json</code></td>
+      <td class="val">{ sections: […] }</td>
+      <td><span class="badge nonly">new only</span><span class="hint">snapshot of the form at filing time</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.event_form_id</code></td>
+      <td class="val">9 (House-Items Application v1)</td>
+      <td><span class="badge nonly">new only</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.assigned_lco_user_id / assigned_fc_user_id / …</code></td>
+      <td class="val">—</td>
+      <td><span class="badge nonly">new only</span><span class="hint">the legacy data records no case officers</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>umoor_applications.updated_at</code></td>
+      <td class="val">2026-02-19</td>
+      <td><span class="badge nonly">new only</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  
+  <section class="card">
+    <h3>MBI — legacy field beside new field</h3>
+    <p class="sub">Legacy MBI columns come from the <code>legacy_mb</code> archive (tables present, no rows). New-system field ids come from the live MBI form “Main MBI Assessment” (umoor_forms id 38, version 8).</p>
+    <table class="sbs">
+      <thead><tr>
+        <th colspan="2" class="hl">LEGACY — muw_database / legacy_mb</th>
+        <th colspan="2" class="hn">NEW SYSTEM — legacy_mb_gms_muwasaat</th>
+        <th rowspan="2" style="width:13%">Difference</th>
+      </tr><tr>
+        <th style="width:21%" class="hl">Table . column</th><th style="width:16%" class="hl">Value</th>
+        <th style="width:24%" class="hn">Table . column / JSON key</th><th style="width:16%" class="hn">Value</th>
+      </tr></thead>
+      <tbody><tr class="st-conv">
+      <td class="src"><code>ahousing.HOF</code></td>
+      <td class="val">20411343</td>
+      <td class="src"><code>mbi_submissions.application_id → umoor_applications.its_number</code></td>
+      <td class="val">20411343</td>
+      <td><span class="badge conv">converted</span><span class="hint">the MBI hangs off the application, not the HOF</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.FULLNAME</code></td>
+      <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+      <td class="src"><code>mbi_members.full_name (Head of Household)</code></td>
+      <td class="val">Mohammadhussain bhai Ibrahim bhai Patrawala</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.FMEMBERS</code></td>
+      <td class="val">5</td>
+      <td class="src"><code>count of mbi_members rows</code></td>
+      <td class="val">5</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.HOUSESURVEYSTATUS / FAMILYSURVEYSTATUS</code></td>
+      <td class="val">Done / Done</td>
+      <td class="src"><code>mbi_submissions.status</code></td>
+      <td class="val">submitted</td>
+      <td><span class="badge conv">converted</span><span class="hint">two statuses become one</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.SurveyBy / SurveyITS</code></td>
+      <td class="val">Mulla Taher bhai</td>
+      <td class="src"><code>mbi_submissions.filled_by_user_id</code></td>
+      <td class="val">user id 6</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>ahousing.SurveyDate</code></td>
+      <td class="val">2025-11-04</td>
+      <td class="src"><code>mbi_submissions.submitted_at</code></td>
+      <td class="val">2026-02-15 11:20</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.LCO_ITS / LCO_Name</code></td>
+      <td class="val">LCO ITS + name</td>
+      <td class="src"><code>umoor_applications.assigned_lco_user_id</code></td>
+      <td class="val">user id 6</td>
+      <td><span class="badge conv">converted</span><span class="hint">stored on the application, not the MBI</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>ahousing.H1 (house type)</code></td>
+      <td class="val">Rented</td>
+      <td class="src"><code>mbi_household.data_json.fields.f_hh_house_title</code></td>
+      <td class="val">Paghdi</td>
+      <td><span class="badge ask">to confirm</span><span class="hint">coded H-columns need a question list (Q2)</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>ahousing.H2 … H7</code></td>
+      <td class="val">rooms, roof, walls, floor …</td>
+      <td class="src"><code>f_hh_structure_material / f_hh_roof / f_hh_walls / f_hh_floor / f_hh_carpet_area</code></td>
+      <td class="val">Kutcha / Average / Average / Average</td>
+      <td><span class="badge ask">to confirm</span><span class="hint">exact H-number → field mapping to confirm</span></td>
+    </tr><tr class="st-ask">
+      <td class="src"><code>ahousing.H8 … H18 (yes/no facilities)</code></td>
+      <td class="val">1 / 0 / 1 …</td>
+      <td class="src"><code>f_hh_drinking_water / f_hh_sanitation / f_hh_power_backup / f_hh_pest_control / f_hh_assets</code></td>
+      <td class="val">various</td>
+      <td><span class="badge ask">to confirm</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>ahousing.INCOME</code></td>
+      <td class="val">18,000</td>
+      <td class="src"><code>mbi_household.data_json.fields.f_hh_income</code></td>
+      <td class="val">18,000</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>ahousing.EXPENSE</code></td>
+      <td class="val">21,000</td>
+      <td class="src"><code>mbi_household.data_json.fields.f_hh_expense</code></td>
+      <td class="val">21,000</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.DEBTS</code></td>
+      <td class="val">50,000</td>
+      <td class="src"><code>f_hh_debt / f_hh_debt_emi / f_hh_emi_paid / f_hh_emi_remaining</code></td>
+      <td class="val">50,000 + EMI detail</td>
+      <td><span class="badge conv">converted</span><span class="hint">one legacy column becomes four fields</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.SILAFITRA / VAJEBAAT</code></td>
+      <td class="val">Yes / Yes</td>
+      <td class="src"><code>f_bd_wajebat_m / f_bd_wajebat_y</code></td>
+      <td class="val">amounts</td>
+      <td><span class="badge conv">converted</span><span class="hint">yes/no becomes an amount</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.FMB / FMBENOUGH</code></td>
+      <td class="val">Partly</td>
+      <td class="src"><code>f_hh_thali (+ f_hh_thali_reason)</code></td>
+      <td class="val">No / Long Distance</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>ahousing.Deprived_House / _Livelihood / _Nutrition / _Edu / _Deen / _Medical</code></td>
+      <td class="val">1 / 1 / 0 / 1 / 0 / 1</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">the new system uses score bands instead of deprivation flags</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.Marks_House / Marks_Livelihood / …</code></td>
+      <td class="val">12 / 9 / 4 …</td>
+      <td class="src"><code>mbi_household.data_json.sectionScores</code></td>
+      <td class="val">{ s_hh_nutri: { score 3, max 5 } … }</td>
+      <td><span class="badge conv">converted</span><span class="hint">recalculated from the answers</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.Pert_House / Pert_Livelihood / …</code></td>
+      <td class="val">60.00 / 45.00</td>
+      <td class="src"><code>mbi_submissions.umoor_scoring_tree_json</code></td>
+      <td class="val">compositeScorePct 67, per-dimension %</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>ahousing.AP_Generated</code></td>
+      <td class="val">1</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">no action-plan feature in the new MBI</span></td>
+    </tr><tr class="st-gap">
+      <td class="src"><code>ahousing.HousePic1 / HousePic2 / PicDate</code></td>
+      <td class="val">house1.jpg, house2.jpg</td>
+      <td class="src"><code>uploaded_files + umoor_application_documents</code></td>
+      <td class="val">—</td>
+      <td><span class="badge gap">no legacy data</span><span class="hint">image files needed</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>ahousing.VerifyBy / VerifyDate / VerifyType / VerifyRemarks</code></td>
+      <td class="val">Verified · Physical</td>
+      <td class="src"><code>umoor_applications.forward_verification_type / forward_notes</code></td>
+      <td class="val">standard</td>
+      <td><span class="badge conv">converted</span><span class="hint">verification lives on the application</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>ahousing.KaffafRemarks / KGType / TAG</code></td>
+      <td class="val">text</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>bsurvey.EJID</code></td>
+      <td class="val">30712245</td>
+      <td class="src"><code>mbi_members.its_id</code></td>
+      <td class="val">30712245</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>bsurvey.FULLNAME / RELATION / AGE / GENDER</code></td>
+      <td class="val">Fatema bai · Wife · 43 · F</td>
+      <td class="src"><code>mbi_members.full_name / relation / age (+ ITS profile)</code></td>
+      <td class="val">same values</td>
+      <td><span class="badge same">carried as-is</span><span class="hint">gender is not a column on mbi_members</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.MOBILE</code></td>
+      <td class="val">98xxxxxx21</td>
+      <td class="src"><code>mbi_member_domains (s_ind_contact).f_ind_contact_no</code></td>
+      <td class="val">98xxxxxx21</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.D1 … D10 (Deen)</code></td>
+      <td class="val">coded answers</td>
+      <td class="src"><code>mbi_member_domains where domain = 's_deenfound' / 's_deenprac'</code></td>
+      <td class="val">f_ind_namaz, f_ind_misaq, f_ind_kalema …</td>
+      <td><span class="badge conv">converted</span><span class="hint">coded columns become named fields</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.E1 … E9 (Education)</code></td>
+      <td class="val">coded answers</td>
+      <td class="src"><code>mbi_member_domains where domain = 's_edu'</code></td>
+      <td class="val">f_ind_studying, f_ind_std …</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.B1 / B2 / INCOME</code></td>
+      <td class="val">Daily wage · 12,000</td>
+      <td class="src"><code>mbi_member_domains where domain = 's_livelihood'</code></td>
+      <td class="val">occupation + income fields</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.M1 / Height / Weight</code></td>
+      <td class="val">condition · 5'4&quot; · 61</td>
+      <td class="src"><code>mbi_member_domains where domain = 's_medical'</code></td>
+      <td class="val">medical fields (+ ITS height/weight)</td>
+      <td><span class="badge conv">converted</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>bsurvey.Marks_Deen / Marks_Edu / …</code></td>
+      <td class="val">12 / 5 …</td>
+      <td class="src"><code>mbi_member_domains.score + max_score</code></td>
+      <td class="val">3 / 15 per section</td>
+      <td><span class="badge conv">converted</span><span class="hint">per section instead of per area</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>bsurvey.Deprived_* / IsChild / KGType</code></td>
+      <td class="val">flags</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>budgettable_copy.Salary</code></td>
+      <td class="val">18,000</td>
+      <td class="src"><code>f_bi_salary_m (+ f_bi_salary_y)</code></td>
+      <td class="val">18,000 monthly</td>
+      <td><span class="badge conv">converted</span><span class="hint">the new form keeps monthly and yearly side by side</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.Business / Profession / Investment / PropertyRent / HomeIndustry / OtherIncome</code></td>
+      <td class="val">amounts</td>
+      <td class="src"><code>f_bi_business_m / f_bi_profession_m / f_bi_investment_m / f_bi_property_rent_m / f_bi_home_industry_m / f_bi_other_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>budgettable_copy.TotalIncome</code></td>
+      <td class="val">18,000</td>
+      <td class="src"><code>f_bi_total</code></td>
+      <td class="val">18,000</td>
+      <td><span class="badge conv">converted</span><span class="hint">auto-calculated in the new form</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.Wajebaat / FMB / JamaatExp / Ziyarat / Ashara / Qarzan / OtherDeen</code></td>
+      <td class="val">amounts</td>
+      <td class="src"><code>f_bd_wajebat_m / f_bd_thali_m / f_bd_jamat_m / f_bd_ziyarat_m / f_bd_ashara_m / f_bd_qardan_m / f_bd_other_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.SchoolFees / TutionFees / Stationery / Toys / Newspapers</code></td>
+      <td class="val">2,500 / 1,000 / 300 / 0 / 0</td>
+      <td class="src"><code>f_ee_school_m / f_ee_tuition_m / f_ee_stationery_m / f_ee_toys_m / f_ee_newspaper_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.Grocery / DineOut / Essentials</code></td>
+      <td class="val">7,000 / 500 / 1,200</td>
+      <td class="src"><code>f_he_groceries_m / f_he_restaurants_m / f_he_essentials_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.Doctor / EyeCare / Medicines / Vacation / Sports / OtherHealth</code></td>
+      <td class="val">800 / 0 / 1,500 / 0 / 0 / 0</td>
+      <td class="src"><code>f_hex_doctor_m / f_hex_glasses_m / f_hex_medicines_m / f_hex_picnic_m / f_hex_swim_m / f_hex_other_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>budgettable_copy.Rent / Gas / Electricity / Telephone / Water / Cable / Internet / Maids / Clothes / Appliances</code></td>
+      <td class="val">amounts</td>
+      <td class="src"><code>f_he_rent_m / f_he_gas_m / f_he_electricity_m / f_he_telephone_m / f_he_water_m / f_he_cable_m / f_he_househelp_m / f_he_clothing_m / f_he_appliance_m</code></td>
+      <td class="val">same amounts</td>
+      <td><span class="badge conv">converted</span><span class="hint">legacy Cable and Internet are one field in the new form</span></td>
+    </tr><tr class="st-conv">
+      <td class="src"><code>budgettable_copy.TotalExp / TotalDiff</code></td>
+      <td class="val">21,000 / −3,000</td>
+      <td class="src"><code>f_budget_expense_grand_total</code></td>
+      <td class="val">21,000</td>
+      <td><span class="badge conv">converted</span><span class="hint">the difference is calculated, not stored</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.EarningMembers / Dependants / FM / Curr</code></td>
+      <td class="val">2 / 3 / 5 / INR</td>
+      <td class="src"><code>f_budget_earning_members / f_budget_dependents / f_budget_total_members / f_budget_currency</code></td>
+      <td class="val">same values</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-same">
+      <td class="src"><code>budgettable_copy.SurveyBy / SurveyITS / SurveyDate</code></td>
+      <td class="val">Mulla Taher bhai · 2025-11-04</td>
+      <td class="src"><code>f_budget_survey_name / f_budget_survey_its / f_budget_survey_date</code></td>
+      <td class="val">same values</td>
+      <td><span class="badge same">carried as-is</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>actionplans + actionplans_master</code></td>
+      <td class="val">plan text per HOF</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span><span class="hint">no action-plan table in the new system</span></td>
+    </tr><tr class="st-lonly">
+      <td class="src"><code>feadocsreq</code></td>
+      <td class="val">document requests</td>
+      <td class="src"><code>—</code></td>
+      <td class="val">—</td>
+      <td><span class="badge lonly">legacy only</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>mbi_submissions.public_id</code></td>
+      <td class="val">MBI-2026-0001</td>
+      <td><span class="badge nonly">new only</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>mbi_submissions.mbi_form_id / form_version</code></td>
+      <td class="val">38 · v8</td>
+      <td><span class="badge nonly">new only</span><span class="hint">the legacy survey has no form version</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>mbi_members.completion_pct</code></td>
+      <td class="val">100%</td>
+      <td><span class="badge nonly">new only</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>mbi_member_domains.answers_json (per section)</code></td>
+      <td class="val">per-section answers</td>
+      <td><span class="badge nonly">new only</span><span class="hint">legacy keeps every answer in one wide row</span></td>
+    </tr><tr class="st-nonly">
+      <td class="src"><span class="empty">—</span></td>
+      <td class="val"><span class="empty">—</span></td>
+      <td class="src"><code>mbi_grants</code></td>
+      <td class="val">—</td>
+      <td><span class="badge nonly">new only</span><span class="hint">grant blocks are new</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  <h2 class="grp">Reference list — table to table</h2>
+  <section class="card">
+    <h3>Application — legacy field → new field</h3>
+    <table><thead><tr><th style="width:34%">Legacy (muw_database)</th><th style="width:34%">New system (legacy_mb_gms_muwasaat)</th><th style="width:32%">Note</th></tr></thead>
+    <tbody><tr><td><code>prevmuwasaattable.HOF</code></td><td><code>umoor_applications.its_number + users.its_subject</code></td><td>a user account must be created per HOF</td></tr><tr><td><code>prevmuwasaattable.HOFName</code></td><td><code>users.full_name</code></td><td></td></tr><tr><td><code>prevmuwasaattable.JAMAAT_ID</code></td><td><code>umoor_applications.jamaat_id</code></td><td>via jamaats.its_jamaat_id — matches 100%</td></tr><tr><td><code>prevmuwasaattable.JAMIAT</code></td><td><code>umoor_applications.jamiat_id</code></td><td>two names do not match the master</td></tr><tr><td><code>prevmuwasaattable.Purpose</code></td><td><code>umoor_applications.umoor_subcategory_id</code></td><td>Regular / Education / Medical / House-Items / Business</td></tr><tr><td><code>prevmuwasaattable.EnayatAmt</code></td><td><code>umoor_applications.amount_requested</code></td><td></td></tr><tr><td><code>prevmuwasaattable.Status</code></td><td><code>umoor_applications.status + workflow_state</code></td><td>blank for 1441–1444</td></tr><tr><td><code>prevmuwasaattable.MYear</code></td><td><code>umoor_applications.event_umoor_id + fiscal_year</code></td><td>one campaign per Hijri year</td></tr><tr><td><code>prevmuwasaattable.Curr</code></td><td><code>answers_json._legacy.currency</code></td><td>no currency column in the new system</td></tr><tr><td><code>houseitems.Catgy</code></td><td><code>answers_json.f_hi_category</code></td><td></td></tr><tr><td><code>houseitems.DETAILS</code></td><td><code>answers_json.f_hi_items.rows[].c_hi_item</code></td><td>names normalised</td></tr><tr><td><code>houseitems.QTY / RATE / AMOUNT</code></td><td><code>rows[].c_hi_qty / c_hi_rate / c_hi_total</code></td><td></td></tr><tr><td><code>houseitems.SEL / UmmalSEL</code></td><td><code>answers_json._legacy.selected / ummal_selected</code></td><td>no equivalent concept</td></tr><tr><td><code>medicalitems.Ailment / ExpType / AMOUNT</code></td><td><code>answers_json.f_med_items.rows[].Illness / Description / Total</code></td><td>two expense types have no matching option</td></tr><tr><td><code>paymentno1table.Amount / DATE / UTRNO</code></td><td><code>payments.amount / released_at / transaction_ref</code></td><td></td></tr><tr><td><code>purposetable.* (empty)</code></td><td><code>answers, documents, bank details, approvals</code></td><td>no data available</td></tr></tbody></table>
+  </section>
+  <section class="card">
+    <h3>MBI — legacy field → new field</h3>
+    <table><thead><tr><th style="width:34%">Legacy (legacy_mb archive)</th><th style="width:34%">New system</th><th style="width:32%">Note</th></tr></thead>
+    <tbody><tr><td><code>ahousing (household survey)</code></td><td><code>mbi_household.data_json → fields</code></td><td>H1–H24 become the Family Housing / Medical / Nutrition / Livelihood sections</td></tr><tr><td><code>ahousing.INCOME / EXPENSE / DEBTS</code></td><td><code>mbi_household.data_json (budget sections)</code></td><td></td></tr><tr><td><code>ahousing.Marks_* / Pert_*</code></td><td><code>mbi_household.data_json.sectionScores + mbi_submissions.umoor_scoring_tree_json</code></td><td>the new system recalculates from the answers</td></tr><tr><td><code>ahousing.Deprived_*</code></td><td><code>no direct column</code></td><td>the new system uses score bands instead</td></tr><tr><td><code>ahousing.SurveyBy / SurveyITS / SurveyDate</code></td><td><code>mbi_submissions.filled_by_user_id / submitted_at</code></td><td></td></tr><tr><td><code>ahousing.LCO_ITS / LCO_Name</code></td><td><code>umoor_applications.assigned_lco_user_id</code></td><td></td></tr><tr><td><code>ahousing.HousePic1 / HousePic2</code></td><td><code>uploaded_files + umoor_application_documents</code></td><td>the image files themselves are needed</td></tr><tr><td><code>bsurvey (per member)</code></td><td><code>mbi_members + mbi_member_domains</code></td><td>one row per member per section</td></tr><tr><td><code>bsurvey.D1–D10 (Deen)</code></td><td><code>mbi_member_domains where domain = 's_deenfound' / 's_deenprac'</code></td><td>coded columns become named fields</td></tr><tr><td><code>bsurvey.E1–E9 (Education)</code></td><td><code>mbi_member_domains where domain = 's_edu'</code></td><td></td></tr><tr><td><code>bsurvey.B1 / B2 / INCOME (Livelihood)</code></td><td><code>mbi_member_domains where domain = 's_livelihood'</code></td><td></td></tr><tr><td><code>bsurvey.M1 / Height / Weight</code></td><td><code>mbi_member_domains where domain = 's_medical'</code></td><td></td></tr><tr><td><code>bsurvey.Marks_* / Pert_*</code></td><td><code>mbi_member_domains.score / max_score</code></td><td></td></tr><tr><td><code>budgettable_copy.* (69 columns)</code></td><td><code>mbi_household.data_json (the 5 budget sections)</code></td><td>one field per amount</td></tr><tr><td><code>actionplans + actionplans_master</code></td><td><code>no equivalent</code></td><td>the new MBI has no action-plan table</td></tr></tbody></table>
+  </section></div>
+</main>
+<script>
+  document.querySelectorAll('nav button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('nav button').forEach(function (x) { x.classList.remove('on'); });
+      document.querySelectorAll('.view').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      document.getElementById(b.dataset.v).classList.add('on');
+      window.scrollTo({ top: 0 });
+    });
+  });
+</script>
+</body>
+</html>
